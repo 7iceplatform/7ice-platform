@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "@fontsource/manrope/400.css";
+@import "@fontsource/manrope/500.css";
+@import "@fontsource/manrope/600.css";
+@import "@fontsource/manrope/700.css";
+@import "../styles/tokens.css";
+
+@theme inline {
+  --color-brand-blue: var(--color-7ice-blue);
+  --color-brand-graphite: var(--color-7ice-graphite);
+  --color-surface-muted: var(--color-7ice-light-gray);
+  --color-border-subtle: var(--color-7ice-gray);
+  --color-brand-white: var(--color-7ice-white);
+  --font-sans: var(--font-7ice-sans);
+  --radius-control: var(--radius-7ice-control);
+  --radius-card: var(--radius-7ice-card);
+}
+
+@layer base {
+  * {
+    @apply border-border-subtle;
+  }
+
+  html {
+    background: var(--color-7ice-white);
+    color: var(--color-7ice-graphite);
+    font-family: var(--font-7ice-sans);
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100vh;
+    background: var(--color-7ice-white);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-7ice-blue);
+    outline-offset: 2px;
+  }
+}

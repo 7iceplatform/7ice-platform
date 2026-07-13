@@ -1,0 +1,9 @@
+const prettierConfig = {
+  plugins: ["prettier-plugin-tailwindcss"],
+  printWidth: 100,
+  singleQuote: false,
+  trailingComma: "all",
+  tabWidth: 2,
+};
+
+export default prettierConfig;
