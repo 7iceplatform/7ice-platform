@@ -1,5 +1,17 @@
+"use client";
+
+import Link from "next/link";
+import type { Route } from "next";
+
 import { Button } from "@/components/ui/button";
 import { HeroFeatures } from "./HeroFeatures";
+
+function scrollToQuiz() {
+  const el = document.getElementById("quiz");
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
 
 export function HeroContent() {
   return (
@@ -25,19 +37,22 @@ export function HeroContent() {
 
       <div className="mt-10 flex flex-wrap gap-4">
 
-        <Button size="lg">
+        <Button size="lg" onClick={scrollToQuiz}>
           Получить расчет
         </Button>
 
         <Button
           size="lg"
           variant="ghost"
+          render={<Link href={"/catalog" as Route} />}
         >
           Каталог оборудования
         </Button>
 
       </div>
-        <HeroFeatures />
+
+      <HeroFeatures />
+
     </div>
   );
 }

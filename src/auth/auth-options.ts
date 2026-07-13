@@ -1,6 +1,9 @@
 import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig } from "next-auth/providers/oauth";
 
+import { findActorByExternalSubject } from "@/server/services/actor-service";
+import { userProvisioningService } from "@/server/services/user-provisioning-service";
+
 interface IdentityProfile extends Record<string, unknown> {
   sub: string;
   email?: string;
@@ -44,9 +47,37 @@ export const authOptions: NextAuthOptions = {
     updateAge: 15 * 60,
   },
   callbacks: {
+    async signIn({ user }) {
+      if (!user.id) {
+        return false;
+      }
+
+      await userProvisioningService.provisionFromIdentity({
+        displayName: user.name,
+        email: user.email,
+        externalSubject: user.id,
+      });
+
+      return true;
+    },
+    async jwt({ token, trigger }) {
+      if (!token.sub) {
+        return token;
+      }
+
+      if (trigger === "signIn" || trigger === "update") {
+        const actor = await findActorByExternalSubject(token.sub);
+        token.permissions = actor?.permissions ?? [];
+        token.roles = actor?.roles ?? [];
+      }
+
+      return token;
+    },
     session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
+        session.user.permissions = (token.permissions as string[] | undefined) ?? [];
+        session.user.roles = (token.roles as string[] | undefined) ?? [];
       }
 
       return session;

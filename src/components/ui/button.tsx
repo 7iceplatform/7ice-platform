@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@/lib/utils/cn";
 
@@ -19,6 +19,7 @@ interface ButtonProperties
   variant?: ButtonVariant;
   size?: ButtonSize;
   fullWidth?: boolean;
+  render?: ReactNode;
 }
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -52,19 +53,30 @@ export function Button({
   size = "md",
   fullWidth = false,
   type = "button",
+  render,
   ...properties
 }: ButtonProperties) {
+  const classes = cn(
+    "inline-flex items-center justify-center rounded-control font-semibold transition-all duration-200",
+    "disabled:pointer-events-none disabled:opacity-50",
+    variantClasses[variant],
+    sizeClasses[size],
+    fullWidth && "w-full",
+    className,
+  );
+
+  if (render) {
+    return (
+      <span className={classes}>
+        {render}
+      </span>
+    );
+  }
+
   return (
     <button
       type={type}
-      className={cn(
-        "inline-flex items-center justify-center rounded-control font-semibold transition-all duration-200",
-        "disabled:pointer-events-none disabled:opacity-50",
-        variantClasses[variant],
-        sizeClasses[size],
-        fullWidth && "w-full",
-        className,
-      )}
+      className={classes}
       {...properties}
     />
   );

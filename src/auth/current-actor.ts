@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/auth/auth-options";
-import { prisma } from "@/server/db/prisma";
+import { findActorByExternalSubject } from "@/server/services/actor-service";
 import type { AuthenticatedActor } from "@/types/auth";
 
 export async function getCurrentActor(): Promise<AuthenticatedActor | null> {
@@ -12,35 +12,5 @@ export async function getCurrentActor(): Promise<AuthenticatedActor | null> {
     return null;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { externalSubject },
-    include: {
-      roleAssignments: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!user || !user.isActive) {
-    return null;
-  }
-
-  return {
-    id: user.id,
-    externalSubject: user.externalSubject,
-    permissions: user.roleAssignments.flatMap((assignment) =>
-      assignment.role.permissions.map((rolePermission) => rolePermission.permission.code),
-    ),
-    roles: user.roleAssignments.map((assignment) => assignment.role.code),
-  };
+  return findActorByExternalSubject(externalSubject);
 }

@@ -1,0 +1,1 @@
+export { CatalogCTA } from "./CatalogCTA";

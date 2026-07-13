@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { SessionProviderWrapper } from "@/providers/session-provider";
+
 interface AppProvidersProperties {
   children: ReactNode;
 }
@@ -22,5 +24,9 @@ export function AppProviders({ children }: AppProvidersProperties) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <SessionProviderWrapper>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    </SessionProviderWrapper>
+  );
 }

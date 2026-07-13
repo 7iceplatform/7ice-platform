@@ -13,13 +13,17 @@ export function Hero() {
       <Container size="wide">
         <div className="grid min-h-[760px] grid-cols-1 gap-10 py-20 xl:grid-cols-[1.2fr_1fr_420px]">
 
-  <HeroContent />
+          <HeroContent />
 
-  <HeroImage />
+          <div className="relative flex items-center justify-center">
+            <HeroImage />
+          </div>
 
-  <HeroCalculator />
+          <div id="quiz">
+            <HeroCalculator />
+          </div>
 
-</div>
+        </div>
       </Container>
     </section>
   );
