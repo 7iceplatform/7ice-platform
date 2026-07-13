@@ -1,9 +1,10 @@
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import Services from "@/components/Services";
-import Advantages from "@/components/Advantages";
-import Calculator from "@/components/Calculator";
-import Footer from "@/components/Footer";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+
+import Hero from "@/components/sections/Hero";
+import Services from "@/components/sections/Services";
+import Advantages from "@/components/sections/Advantages";
+import Calculator from "@/components/sections/Calculator";
 
 export default function Home() {
   return (
