@@ -16,17 +16,14 @@ const updateRoleSchema = z.object({
   action: z.enum(["assign", "revoke"]),
 });
 
-export const PATCH = withApiHandler(async ({ request, requestId }) => {
+export const PATCH = withApiHandler(async ({ params, request, requestId }) => {
   const actor = await getCurrentActor();
   if (!actor) throw errors.unauthorized();
   if (!authorizationService.hasPermission(actor, PERMISSIONS.ADMIN_USERS_MANAGE)) {
     throw errors.forbidden();
   }
 
-  const url = new URL(request.url);
-  const pathParts = url.pathname.split("/");
-  const userId = pathParts.at(-2);
-
+  const userId = params?.id;
   if (!userId) {
     throw errors.forbidden("Invalid user ID.");
   }

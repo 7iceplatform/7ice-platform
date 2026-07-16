@@ -6,6 +6,7 @@ import type { AuthenticatedActor } from "@/types/auth";
 const actor: AuthenticatedActor = {
   externalSubject: "sub-1",
   id: "user-1",
+  tenantId: "tenant-1",
   permissions: ["admin.access", "admin.users.read"],
   roles: ["administrator"],
 };

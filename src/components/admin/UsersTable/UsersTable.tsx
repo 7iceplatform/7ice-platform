@@ -105,11 +105,11 @@ export function UsersTable() {
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-muted text-xs uppercase tracking-wide text-brand-graphite/60">
             <tr>
-              <th className="px-4 py-3">Пользователь</th>
-              <th className="px-4 py-3">Email</th>
-              <th className="px-4 py-3">Роли</th>
-              <th className="px-4 py-3">Статус</th>
-              <th className="px-4 py-3">Действия</th>
+              <th scope="col" className="px-4 py-3">Пользователь</th>
+              <th scope="col" className="px-4 py-3">Email</th>
+              <th scope="col" className="px-4 py-3">Роли</th>
+              <th scope="col" className="px-4 py-3">Статус</th>
+              <th scope="col" className="px-4 py-3">Действия</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">

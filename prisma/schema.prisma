@@ -16,6 +16,26 @@ model Tenant {
   updatedAt   DateTime @updatedAt
   users       User[]
   auditRecords AuditRecord[]
+  pages       Page[]
+  media       Media[]
+  categories  Category[]
+  productFamilies ProductFamily[]
+  products    Product[]
+  contacts    Contact[]
+  companies   Company[]
+  deals       Deal[]
+  workOrders  WorkOrder[]
+  workOrderLogs WorkOrderLog[]
+  invoices    Invoice[]
+  payments    Payment[]
+  integrations Integration[]
+  integrationLogs IntegrationLog[]
+   webhooks    Webhook[]
+   webhookDeliveries WebhookDelivery[]
+   serviceCases ServiceCase[]
+   serviceCaseLogs ServiceCaseLog[]
+   leads        Lead[]
+   consents     Consent[]
 }
 
 model User {
@@ -30,6 +50,8 @@ model User {
   tenant          Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   roleAssignments RoleAssignment[]
   auditRecords    AuditRecord[]    @relation("AuditActor")
+  authoredRevisions PageRevision[]
+  assignedOrders  WorkOrder[]      @relation("Technician")
 
   @@index([isActive])
   @@index([tenantId])
@@ -97,4 +119,733 @@ model AuditRecord {
   @@index([resourceType, resourceId])
   @@index([requestId])
   @@index([tenantId])
+}
+
+enum PageStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+  RESTORED
+}
+
+model Page {
+  id          String     @id @default(cuid())
+  slug        String
+  title       String
+  description String?
+  metaTitle   String?
+  metaDesc    String?
+  tenantId    String?
+  status      PageStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  tenant      Tenant?    @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  revisions   PageRevision[]
+
+  @@unique([slug, tenantId])
+  @@index([status])
+  @@index([tenantId])
+}
+
+model PageRevision {
+  id         String   @id @default(cuid())
+  pageId     String
+  version    Int
+  content    Json
+  authorId   String?
+  status     PageStatus @default(DRAFT)
+  createdAt  DateTime @default(now())
+  page       Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  blocks     PageBlock[]
+
+  @@unique([pageId, version])
+  @@index([pageId])
+}
+
+model PageBlock {
+  id         String   @id @default(cuid())
+  revisionId String
+  type       String
+  order      Int
+  content    Json
+  createdAt  DateTime @default(now())
+  revision   PageRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  @@index([revisionId])
+}
+
+model Media {
+  id             String    @id @default(cuid())
+  filename       String
+  url            String
+  mimeType       String
+  size           Int
+  alt            String?
+  tenantId       String?
+  uploadedBy     String?
+  rights         String?
+  license        String?
+  transcript     String?
+  metadata       Json?
+  isLegalHold    Boolean   @default(false)
+  retentionUntil DateTime?
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  tenant         Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([deletedAt])
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  parentId    String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  tenantId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  parent      Category? @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
+  families    ProductFamily[]
+
+  @@unique([slug, tenantId])
+  @@index([parentId])
+  @@index([tenantId])
+}
+
+model ProductFamily {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String
+  description String?
+  categoryId  String
+  isActive    Boolean  @default(true)
+  tenantId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  tenant      Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  products    Product[]
+
+  @@unique([slug, tenantId])
+  @@index([categoryId])
+  @@index([tenantId])
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  productFamilyId String
+  model           String
+  name            String
+  description     String?
+  specs           Json?
+  priceAmount     Int?
+  priceCurrency   String? @default("RUB")
+  isActive        Boolean  @default(true)
+  tenantId        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  productFamily   ProductFamily @relation(fields: [productFamilyId], references: [id], onDelete: Restrict)
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  options         ProductOption[]
+
+  @@index([productFamilyId])
+  @@index([tenantId])
+}
+
+model ProductOption {
+  id        String   @id @default(cuid())
+  productId String
+  name      String
+  type      String
+  values    Json
+  priceModifier Int @default(0)
+  createdAt DateTime @default(now())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+enum DealStage {
+  NEW
+  QUALIFIED
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  DISCARDED
+}
+
+enum LeadSource {
+  WEBSITE
+  REFERRAL
+  ADVERTISEMENT
+  SOCIAL_MEDIA
+  TRADE_SHOW
+  COLD_CALL
+  OTHER
+}
+
+model Lead {
+  id            String      @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?     @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  firstName     String
+  lastName      String?
+  email         String?
+  phone         String?
+  company       String?
+  source        LeadSource  @default(WEBSITE)
+  campaign      String?
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  status        LeadStatus  @default(NEW)
+  notes         String?
+  convertedContactId String?
+  convertedDealId    String?
+  discardedReason    String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  consents     Consent[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([email])
+}
+
+enum ConsentPurpose {
+  MARKETING
+  ANALYTICS
+  PROFILING
+  THIRD_PARTY_SHARING
+  NEWSLETTER
+}
+
+enum ConsentChannel {
+  WEB
+  EMAIL
+  SMS
+  PHONE
+  IN_PERSON
+  API
+}
+
+enum ConsentStatus {
+  GRANTED
+  DENIED
+  WITHDRAWN
+}
+
+model Consent {
+  id            String          @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  contactId     String?
+  contact       Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  leadId        String?
+  lead          Lead?           @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  purpose       ConsentPurpose
+  channel       ConsentChannel
+  status        ConsentStatus   @default(GRANTED)
+  evidence      String?
+  capturedAt    DateTime        @default(now())
+  withdrawnAt   DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime        @default(now())
+
+  @@index([tenantId, contactId])
+  @@index([tenantId, leadId])
+}
+
+model Contact {
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String?
+  email       String?
+  phone       String?
+  position    String?
+  companyId   String?
+  tenantId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+   deals       Deal[]
+   activities  Activity[]
+   workOrders  WorkOrder[]
+   invoices    Invoice[]
+   serviceCases ServiceCase[]
+   consents    Consent[]
+
+   @@index([companyId])
+   @@index([tenantId])
+   @@index([email])
+}
+
+model Company {
+   id          String    @id @default(cuid())
+   name        String
+   industry    String?
+   website     String?
+   phone       String?
+   address     String?
+   tenantId    String?
+   createdAt   DateTime  @default(now())
+   updatedAt   DateTime  @updatedAt
+   tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+   contacts    Contact[]
+   deals       Deal[]
+   workOrders  WorkOrder[]
+   invoices    Invoice[]
+   serviceCases ServiceCase[]
+
+  @@index([tenantId])
+}
+
+model Deal {
+  id          String    @id @default(cuid())
+  title       String
+  stage       DealStage @default(NEW)
+  valueAmount Int?
+  valueCurrency String? @default("RUB")
+  contactId   String?
+  companyId   String?
+  tenantId    String?
+  description String?
+  lostReason  String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  contact     Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company     Company?  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  tenant      Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  activities  Activity[]
+
+  @@index([stage])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([tenantId])
+}
+
+enum ActivityType {
+  CALL
+  EMAIL
+  MEETING
+  TASK
+  NOTE
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  subject     String
+  body        String?
+  dealId      String?
+  contactId   String?
+  dueAt       DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+  deal        Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  contact     Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([dealId])
+  @@index([contactId])
+  @@index([dueAt])
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  BOUNCED
+  SUPPRESSED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum NotificationCategory {
+  TRANSACTIONAL
+  OPERATIONAL
+  SECURITY
+  MARKETING
+}
+
+model Notification {
+  id            String               @id @default(cuid())
+  userId        String?
+  title         String
+  body          String
+  channel       NotificationChannel  @default(IN_APP)
+  status        NotificationStatus   @default(PENDING)
+  category      NotificationCategory @default(OPERATIONAL)
+  dedupKey      String?
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime             @default(now())
+  sentAt        DateTime?
+  readAt        DateTime?
+
+  @@unique([dedupKey])
+  @@index([userId, readAt])
+  @@index([status])
+  @@index([referenceType, referenceId])
+  @@index([category])
+}
+
+model NotificationPreference {
+  id              String               @id @default(cuid())
+  userId          String               @unique
+  quietHoursStart String?
+  quietHoursEnd   String?
+  timezone        String?              @default("Europe/Moscow")
+  inAppEnabled    Boolean              @default(true)
+  emailEnabled    Boolean              @default(false)
+  smsEnabled      Boolean              @default(false)
+  pushEnabled     Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  PLANNED
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  QUALITY_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkOrderType {
+  INSTALLATION
+  SERVICE
+  MAINTENANCE
+  REMEDIATION
+}
+
+model WorkOrder {
+  id              String          @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  workOrderNumber Int             @default(0)
+  type            WorkOrderType
+  status          WorkOrderStatus @default(DRAFT)
+  title           String
+  description     String?
+  contactId       String?
+  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId       String?
+  company         Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  scheduledAt     DateTime?
+  estimatedEndAt  DateTime?
+  completedAt     DateTime?
+  technicianId    String?
+  technician      User?           @relation("Technician", fields: [technicianId], references: [id], onDelete: SetNull)
+  siteAddress     String?
+  notes           Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+   logs            WorkOrderLog[]
+   invoices        Invoice[]
+   serviceCases    ServiceCase[]
+
+   @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([tenantId, technicianId])
+  @@index([tenantId, workOrderNumber])
+}
+
+model WorkOrderLog {
+  id          String          @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  workOrderId String
+  workOrder   WorkOrder       @relation(fields: [workOrderId], references: [id], onDelete: Cascade)
+  actorId     String?
+  status      WorkOrderStatus
+  note        String?
+  createdAt   DateTime        @default(now())
+
+  @@unique([tenantId, id])
+  @@index([tenantId, workOrderId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  BANK_TRANSFER
+  CASH
+  ONLINE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  SETTLED
+  FAILED
+  REFUNDED
+}
+
+model Invoice {
+  id              String          @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  invoiceNumber   Int             @default(0)
+  status          InvoiceStatus   @default(DRAFT)
+  contactId       String?
+  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId       String?
+  company         Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  workOrderId     String?
+  workOrder       WorkOrder?      @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  amountCents     Int
+  taxCents        Int             @default(0)
+  currency        String          @default("RUB")
+  description     String?
+  issuedAt        DateTime?
+  dueAt           DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  payments        Payment[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([tenantId, contactId])
+  @@index([tenantId, invoiceNumber])
+}
+
+model Payment {
+  id              String          @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?         @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  invoiceId       String
+  invoice         Invoice         @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  amountCents     Int
+  method          PaymentMethod   @default(OTHER)
+  status          PaymentStatus   @default(PENDING)
+  reference       String?
+  notes           String?
+  settledAt       DateTime?
+  createdAt       DateTime        @default(now())
+
+  @@unique([tenantId, id])
+  @@index([tenantId, invoiceId])
+  @@index([tenantId, status])
+}
+
+enum IntegrationType {
+  API_KEY
+  WEBHOOK
+  OAUTH2
+  SYNC
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  PENDING
+}
+
+model Integration {
+  id              String            @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  name            String
+  type            IntegrationType
+  status          IntegrationStatus @default(PENDING)
+  description     String?
+  endpointUrl     String?
+  credentialsJson Json?
+  configJson      Json?
+  lastSyncAt      DateTime?
+  lastErrorAt     DateTime?
+  lastError       String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  logs            IntegrationLog[]
+  webhooks        Webhook[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+}
+
+model IntegrationLog {
+  id              String    @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?   @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  integrationId   String
+  integration     Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  correlationId   String
+  direction       String    @default("OUTBOUND") // INBOUND | OUTBOUND
+  status          String    // SUCCESS | FAILED | PENDING | RETRY
+  requestMethod   String?
+  requestUrl      String?
+  requestBody     Json?
+  responseCode    Int?
+  responseBody    Json?
+  error           String?
+  retryCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  @@unique([tenantId, id])
+  @@index([tenantId, integrationId])
+  @@index([tenantId, correlationId])
+}
+
+enum WebhookEvent {
+  CONTACT_CREATED
+  CONTACT_UPDATED
+  DEAL_CREATED
+  DEAL_STAGE_CHANGED
+  INVOICE_ISSUED
+  INVOICE_PAID
+  WORK_ORDER_CREATED
+  WORK_ORDER_COMPLETED
+  PAYMENT_RECEIVED
+}
+
+enum WebhookStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model Webhook {
+  id              String            @id @default(cuid())
+  tenantId        String?
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  integrationId   String?
+  integration     Integration?      @relation(fields: [integrationId], references: [id], onDelete: SetNull)
+  name            String
+  url             String
+  secret          String?
+  events          WebhookEvent[]
+  status          WebhookStatus     @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  deliveries      WebhookDelivery[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+}
+
+model WebhookDelivery {
+  id          String        @id @default(cuid())
+  tenantId    String?
+  tenant      Tenant?       @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  webhookId   String
+  webhook     Webhook       @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  event       WebhookEvent
+  payload     Json
+  responseCode Int?
+  status      String        @default("PENDING") // PENDING | SUCCESS | FAILED
+  error       String?
+  retryCount  Int           @default(0)
+  createdAt   DateTime      @default(now())
+
+  @@unique([tenantId, id])
+  @@index([tenantId, webhookId])
+}
+
+enum ServiceCaseStatus {
+  NEW
+  TRIAGED
+  AWAITING_CUSTOMER
+  PLANNED
+  IN_PROGRESS
+  RESOLVED
+  CONFIRMED
+  CLOSED
+}
+
+enum ServiceCaseType {
+  INCIDENT
+  REQUEST
+  MAINTENANCE
+  WARRANTY
+  COMPLAINT
+}
+
+enum ServiceCaseSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model ServiceCase {
+  id              String            @id @default(cuid())
+  caseNumber      Int               @unique @default(autoincrement())
+  tenantId        String?
+  tenant          Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  type            ServiceCaseType
+  severity        ServiceCaseSeverity @default(MEDIUM)
+  status          ServiceCaseStatus  @default(NEW)
+  title           String
+  description     String?
+  contactId       String?
+  contact         Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId       String?
+  company         Company?          @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  workOrderId     String?
+  workOrder       WorkOrder?        @relation(fields: [workOrderId], references: [id], onDelete: SetNull)
+  resolution      String?
+  cause           String?
+  resolvedAt      DateTime?
+  closedAt        DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  logs            ServiceCaseLog[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, status])
+  @@index([contactId])
+  @@index([companyId])
+}
+
+model ServiceCaseLog {
+  id            String            @id @default(cuid())
+  tenantId      String?
+  tenant        Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  serviceCaseId String
+  serviceCase   ServiceCase       @relation(fields: [serviceCaseId], references: [id], onDelete: Cascade)
+  status        ServiceCaseStatus
+  note          String?
+  actorId       String?
+  createdAt     DateTime          @default(now())
+
+  @@index([serviceCaseId])
 }

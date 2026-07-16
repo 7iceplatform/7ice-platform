@@ -102,11 +102,11 @@ export function AuditTable() {
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-muted text-xs uppercase tracking-wide text-brand-graphite/60">
             <tr>
-              <th className="px-4 py-3">Дата</th>
-              <th className="px-4 py-3">Действие</th>
-              <th className="px-4 py-3">Ресурс</th>
-              <th className="px-4 py-3">Актор</th>
-              <th className="px-4 py-3">Детали</th>
+              <th scope="col" className="px-4 py-3">Дата</th>
+              <th scope="col" className="px-4 py-3">Действие</th>
+              <th scope="col" className="px-4 py-3">Ресурс</th>
+              <th scope="col" className="px-4 py-3">Актор</th>
+              <th scope="col" className="px-4 py-3">Детали</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-subtle">

@@ -50,4 +50,32 @@ export const errors = {
       title: "Unauthorized",
       type: "https://7ice.local/problems/unauthorized",
     }),
+  notFound: (detail = "The requested resource was not found.") =>
+    new AppError("Not Found", {
+      detail,
+      status: 404,
+      title: "Not Found",
+      type: "https://7ice.local/problems/not-found",
+    }),
+  conflict: (detail = "The request conflicts with the current state of the resource.") =>
+    new AppError("Conflict", {
+      detail,
+      status: 409,
+      title: "Conflict",
+      type: "https://7ice.local/problems/conflict",
+    }),
+  validation: (detail = "The request did not pass validation.") =>
+    new AppError("Validation Error", {
+      detail,
+      status: 422,
+      title: "Validation Error",
+      type: "https://7ice.local/problems/validation",
+    }),
+  tooManyRequests: (detail = "Too many requests. Please retry later.") =>
+    new AppError("Too Many Requests", {
+      detail,
+      status: 429,
+      title: "Too Many Requests",
+      type: "https://7ice.local/problems/rate-limit",
+    }),
 };

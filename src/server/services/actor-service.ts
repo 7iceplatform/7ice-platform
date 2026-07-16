@@ -30,6 +30,7 @@ export async function findActorByExternalSubject(
   return {
     id: user.id,
     externalSubject: user.externalSubject,
+    tenantId: user.tenantId,
     permissions: user.roleAssignments.flatMap((assignment) =>
       assignment.role.permissions.map((rolePermission) => rolePermission.permission.code),
     ),

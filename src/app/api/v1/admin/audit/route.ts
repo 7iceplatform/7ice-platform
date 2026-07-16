@@ -6,6 +6,7 @@ import { prisma } from "@/server/db/prisma";
 import { authorizationService } from "@/server/services/authorization-service";
 import { withApiHandler } from "@/lib/http/with-api-handler";
 import { errors } from "@/lib/errors/app-error";
+import { tenantWhere } from "@/lib/tenant-scope";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export const GET = withApiHandler(async ({ request, requestId }) => {
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1"));
   const pageSize = Math.min(50, Math.max(1, Number(url.searchParams.get("pageSize") ?? "20")));
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = tenantWhere(actor);
 
   if (action) {
     where.action = { contains: action, mode: "insensitive" };

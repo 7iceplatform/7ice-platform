@@ -1,53 +1,39 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+
 import { Container } from "@/components/layout";
 import { cn } from "@/lib/utils/cn";
 
 interface Category {
-  readonly code: string;
-  readonly label: string;
-  readonly description: string;
-  readonly icon: string;
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  familiesCount: number;
 }
 
-const categories: Category[] = [
-  {
-    code: "split",
-    label: "Сплит-системы",
-    description: "Компактные настенные кондиционеры для квартир и офисов",
-    icon: "❄️",
-  },
-  {
-    code: "multi",
-    label: "Мультисплит",
-    description: "Один внешний блок — несколько внутренних",
-    icon: "❄️",
-  },
-  {
-    code: "vrf",
-    label: "VRF-системы",
-    description: "Промышленные системы кондиционирования",
-    icon: "🏗️",
-  },
-  {
-    code: "ventilation",
-    label: "Вентиляция",
-    description: "Приточные и вытяжные системы с рекуперацией",
-    icon: "💨",
-  },
-  {
-    code: "commercial",
-    description: "Кассетные, канальные и напольно-потолочные решения",
-    icon: "🏢",
-    label: "Коммерческие",
-  },
-  {
-    code: "accessories",
-    label: "Аксессуары",
-    description: "Пульты, кронштейны, фильтры и комплектующие",
-    icon: "🔧",
-  },
-];
+const icons: Record<string, string> = {
+  split: "❄️",
+  multi: "❄️",
+  vrf: "🏗️",
+  ventilation: "💨",
+  commercial: "🏢",
+  accessories: "🔧",
+};
 
 export function CatalogCategories() {
+  const { data } = useQuery<{ data: Category[] }>({
+    queryKey: ["public", "catalog", "categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/v1/public/catalog/categories");
+      if (!response.ok) throw new Error("Failed to fetch categories");
+      return response.json();
+    },
+  });
+
+  const categories = data?.data ?? [];
+
   return (
     <section className="bg-white py-20">
       <Container>
@@ -61,24 +47,35 @@ export function CatalogCategories() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {categories.map((category) => (
+          {categories.length === 0 ? (
+            <p className="col-span-full py-8 text-center text-brand-graphite/50">
+              Категории скоро появятся
+            </p>
+          ) : categories.map((category) => (
             <button
-              key={category.code}
+              key={category.id}
               type="button"
               className={cn(
                 "group flex items-start gap-4 rounded-card border border-border-subtle bg-brand-white p-6 text-left transition-all duration-200",
                 "hover:border-brand-blue hover:shadow-sm",
               )}
             >
-              <span className="mt-1 text-2xl">{category.icon}</span>
+              <span className="mt-1 text-2xl">{icons[category.slug] ?? "📦"}</span>
 
               <div>
                 <h3 className="text-base font-semibold text-brand-graphite group-hover:text-brand-blue">
-                  {category.label}
+                  {category.name}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-brand-graphite/60">
-                  {category.description}
-                </p>
+                {category.description ? (
+                  <p className="mt-2 text-sm leading-6 text-brand-graphite/60">
+                    {category.description}
+                  </p>
+                ) : null}
+                {category.familiesCount > 0 ? (
+                  <p className="mt-1 text-xs text-brand-graphite/40">
+                    {category.familiesCount} {category.familiesCount === 1 ? "семейство" : "семейств"}
+                  </p>
+                ) : null}
               </div>
             </button>
           ))}

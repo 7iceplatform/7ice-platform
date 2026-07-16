@@ -5,11 +5,9 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
-      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -18,29 +16,35 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    networks:
+      - backend
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
-    ports:
-      - "8180:8080"
-    command: start-dev
+    restart: unless-stopped
+    command: start
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Set KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://database:5432/keycloak
       KC_DB_USERNAME: ${POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
-      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      KC_HOSTNAME_STRICT: "true"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY: edge
     depends_on:
       database:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8080/health/ready"]
-      interval: 5s
-      timeout: 3s
+      interval: 10s
+      timeout: 5s
       retries: 30
-      start_period: 15s
+      start_period: 30s
+    networks:
+      - backend
 
   keycloak-init:
     image: quay.io/keycloak/keycloak:26.2
@@ -48,13 +52,21 @@ services:
       keycloak:
         condition: service_healthy
     volumes:
-      - ./docker/keycloak/init.sh:/init.sh:ro
+      - ./docker/keycloak/init-prod.sh:/init.sh:ro
     entrypoint: ["/bin/sh", "/init.sh"]
+    environment:
+      KC_HOSTNAME: ${KC_HOSTNAME:-localhost}
+      CLIENT_SECRET: ${AUTH_OIDC_CLIENT_SECRET}
+      REDIRECT_URIS: ${APP_URL}/*
+      WEB_ORIGINS: ${APP_URL}
+    networks:
+      - backend
 
   application:
     build:
       context: .
       target: runner
+    restart: unless-stopped
     depends_on:
       database:
         condition: service_healthy
@@ -63,10 +75,54 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - uploads-data:/app/uploads
+    networks:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - uploads-data:/uploads:ro
+    depends_on:
+      application:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/nginx-health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - backend
+
+  migrate:
+    build:
+      context: .
+      target: builder
+    env_file:
+      - .env
+    command: ["sh", "-c", "npx prisma migrate deploy && echo 'Migrations applied'"]
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - backend
     profiles:
-      - application
+      - setup
 
 volumes:
   postgres-data:
+  uploads-data:
+
+networks:
+  backend:

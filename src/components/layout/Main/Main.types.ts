@@ -1,3 +1,3 @@
 import type { HTMLAttributes } from "react";
 
-export interface MainProps extends HTMLAttributes<HTMLElement> {}
+export type MainProps = HTMLAttributes<HTMLElement>;

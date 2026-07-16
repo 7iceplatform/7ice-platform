@@ -28,6 +28,39 @@ export default async function AdminLayout({ children }: Readonly<AdminLayoutProp
               <Link className="hover:text-brand-blue" href={"/admin" as Route}>
                 Обзор
               </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/cms" as Route}>
+                CMS
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/media" as Route}>
+                Медиа
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/catalog" as Route}>
+                Каталог
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/crm" as Route}>
+                CRM
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/leads" as Route}>
+                Лиды
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/orders" as Route}>
+                Заказы
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/service-cases" as Route}>
+                Сервис
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/finance" as Route}>
+                Финансы
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/analytics" as Route}>
+                Аналитика
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/integrations" as Route}>
+                Интеграции
+              </Link>
+              <Link className="hover:text-brand-blue" href={"/admin/notifications" as Route}>
+                Уведомления
+              </Link>
               <Link className="hover:text-brand-blue" href={"/admin/users" as Route}>
                 Пользователи
               </Link>

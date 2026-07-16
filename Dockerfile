@@ -10,7 +10,7 @@ RUN apk add --no-cache libc6-compat
 FROM base AS dependencies
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --prefer-offline
 
 FROM dependencies AS builder
 
@@ -30,10 +30,13 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/src/generated ./src/generated
+
+RUN mkdir -p /app/uploads && chown nextjs:nodejs /app/uploads
 
 USER nextjs
 
 EXPOSE 3000
 
 CMD ["node", "server.js"]
-

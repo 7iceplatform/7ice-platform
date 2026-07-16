@@ -1,85 +1,44 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+
 import { Container } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 interface Product {
-  readonly id: string;
-  readonly name: string;
-  readonly brand: string;
-  readonly category: string;
-  readonly price: number;
-  readonly area: string;
-  readonly features: string[];
-  readonly isNew?: boolean;
+  id: string;
+  model: string;
+  name: string;
+  description: string | null;
+  priceAmount: number;
+  priceCurrency: string;
+  family: { id: string; name: string; slug: string } | null;
 }
 
-const products: Product[] = [
-  {
-    id: "daikin-ftxm",
-    name: "Daikin FTXM",
-    brand: "Daikin",
-    category: "Сплит-система",
-    price: 89_900,
-    area: "до 35 м²",
-    features: ["Инвертор", "Тихий режим", "Wi-Fi управление"],
-    isNew: true,
-  },
-  {
-    id: "mitsubishi-electric-msz-gl",
-    name: "Mitsubishi Electric MSZ-GL",
-    brand: "Mitsubishi Electric",
-    category: "Сплит-система",
-    price: 62_400,
-    area: "до 25 м²",
-    features: ["Инвертор", "Энергоэффективность A++"],
-  },
-  {
-    id: "hitani-ra-35",
-    name: "Hitachi RA-35",
-    brand: "Hitachi",
-    category: "Сплит-система",
-    price: 54_900,
-    area: "до 30 м²",
-    features: ["Инвертор", "Фильтрация воздуха"],
-  },
-  {
-    id: "daikin-rvs",
-    name: "Daikin RVS",
-    brand: "Daikin",
-    category: "VRF-система",
-    price: 450_000,
-    area: "от 100 м²",
-    features: ["Централизованное управление", "Энергоэффективность"],
-  },
-  {
-    id: "ballu-multi",
-    name: "Ballu BSMI",
-    brand: "Ballu",
-    category: "Мультисплит",
-    price: 124_900,
-    area: "до 60 м²",
-    features: ["2 внутренних блока", "Инвертор"],
-  },
-  {
-    id: "zephyr-volta",
-    name: "Zephyr Volta",
-    brand: "Zephyr",
-    category: "Вентиляция",
-    price: 38_500,
-    area: "до 40 м²",
-    features: ["Рекуперация тепла", "Низкий уровень шума"],
-  },
-];
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("ru-RU", {
-    style: "currency",
-    currency: "RUB",
-    maximumFractionDigits: 0,
-  }).format(price);
+function formatPrice(amount: number, currency: string): string {
+  if (currency === "RUB") {
+    return new Intl.NumberFormat("ru-RU", {
+      style: "currency",
+      currency: "RUB",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+  return `${amount.toLocaleString("ru-RU")} ${currency}`;
 }
 
 export function CatalogProducts() {
+  const { data, isLoading } = useQuery<{ data: Product[] }>({
+    queryKey: ["public", "catalog", "products"],
+    queryFn: async () => {
+      const response = await fetch("/api/v1/public/catalog/products?pageSize=12");
+      if (!response.ok) throw new Error("Failed to fetch products");
+      return response.json();
+    },
+  });
+
+  const products = data?.data ?? [];
+
   return (
     <section className="bg-surface-muted py-20">
       <Container>
@@ -95,42 +54,45 @@ export function CatalogProducts() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
+          {isLoading ? (
+            <div className="col-span-full py-8 text-center text-brand-graphite/50">Загрузка...</div>
+          ) : products.length === 0 ? (
+            <div className="col-span-full py-8 text-center text-brand-graphite/50">
+              Оборудование скоро появится
+            </div>
+          ) : products.map((product) => (
             <article
               key={product.id}
               className="group flex flex-col rounded-card border border-border-subtle bg-brand-white transition-all duration-200 hover:border-brand-blue hover:shadow-sm"
             >
               <div className="flex items-start justify-between p-6 pb-0">
-                <Badge tone="default">{product.category}</Badge>
-                {product.isNew ? <Badge tone="info">Новинка</Badge> : null}
+                <Badge tone="default">{product.family?.name ?? "Оборудование"}</Badge>
               </div>
 
               <div className="flex flex-1 flex-col p-6">
                 <span className="text-xs font-medium text-brand-graphite/50">
-                  {product.brand}
+                  {product.model}
                 </span>
                 <h3 className="mt-1 text-lg font-semibold text-brand-graphite">
                   {product.name}
                 </h3>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-1 text-xs text-brand-graphite/70">
-                    {product.area}
-                  </span>
-                  {product.features.map((feature) => (
-                    <span
-                      key={feature}
-                      className="inline-flex items-center rounded-full bg-surface-muted px-2.5 py-1 text-xs text-brand-graphite/70"
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
+                {product.description ? (
+                  <p className="mt-2 text-sm text-brand-graphite/60 line-clamp-2">
+                    {product.description}
+                  </p>
+                ) : null}
 
                 <div className="mt-auto pt-6">
-                  <div className="text-xl font-bold text-brand-graphite">
-                    {formatPrice(product.price)}
-                  </div>
+                  {product.priceAmount > 0 ? (
+                    <div className="text-xl font-bold text-brand-graphite">
+                      {formatPrice(product.priceAmount, product.priceCurrency)}
+                    </div>
+                  ) : (
+                    <div className="text-xl font-bold text-brand-graphite/50">
+                      Цена по запросу
+                    </div>
+                  )}
 
                   <div className="mt-4 flex gap-3">
                     <Button size="sm" fullWidth>

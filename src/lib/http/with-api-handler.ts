@@ -1,3 +1,4 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
@@ -6,8 +7,9 @@ import { createLogger } from "@/lib/logging/logger";
 import type { ProblemDetails } from "@/types/api";
 
 interface ApiHandlerContext {
-  request: Request;
+  request: NextRequest;
   requestId: string;
+  params?: Record<string, string>;
 }
 
 type ApiHandler = (context: ApiHandlerContext) => Promise<Response> | Response;
@@ -24,12 +26,16 @@ function problemResponse(problem: ProblemDetails, status: number): NextResponse<
 }
 
 export function withApiHandler(handler: ApiHandler) {
-  return async function apiHandler(request: Request): Promise<Response> {
+  return async function apiHandler(
+    request: NextRequest,
+    context: { params?: Promise<Record<string, string>> },
+  ): Promise<Response> {
     const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
     const logger = createLogger({ requestId });
 
     try {
-      const response = await handler({ request, requestId });
+      const resolvedParams = context.params ? await context.params : undefined;
+      const response = await handler({ request, requestId, params: resolvedParams });
       response.headers.set("x-request-id", requestId);
       return response;
     } catch (error) {
